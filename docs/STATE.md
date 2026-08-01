@@ -39,11 +39,10 @@ Small, previously-agreed updates to existing docs (like this one) can be pushed 
 - [x] Free-tier limits research (Cloudflare KV/Workers, Supabase)
 - [x] `docs/PRD.md` written
 - [x] `docs/ARCHITECTURE.md` written (incl. Service Layer Pattern + Event Bus + AI-readiness section)
+- [x] `docs/DATABASE.md` written (full schema, RLS policies, anonymous-link 7-day expiry + claim flow, event_log)
 
 ## In Progress / Next Up
-- [ ] `docs/DATABASE.md` — full Postgres schema + RLS policies (currently being DISCUSSED in chat,
-      not yet written to repo — human wants to review schema proposal before it's committed)
-- [ ] `docs/API.md` — API/server-action contracts
+- [ ] `docs/API.md` — API/server-action contracts (service layer function signatures)
 - [ ] `docs/DESIGN_SYSTEM.md` — UI design system
 - [ ] `docs/FOLDER_STRUCTURE.md` — finalized Next.js project structure
 - [ ] `docs/SCREENS.md` — every screen + user flow
