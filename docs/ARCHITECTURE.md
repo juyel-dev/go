@@ -116,7 +116,38 @@ Supabase free-tier projects pause after 7 days without API activity. Mitigation:
 | Supabase MAU | 50,000 | Low initially |
 | Supabase inactivity pause | 7 days | Mitigated via keepalive workflow |
 
-## 8. Deployment Pipeline
+## 8. Service Layer Pattern — Agent-Ready by Design
+
+This is the single most important architectural decision for long-term flexibility, and it costs nothing extra in the MVP.
+
+**Rule:** No UI component, API route, or middleware is ever allowed to query Supabase directly. Every business action goes through a **pure, typed, framework-independent service function** in `lib/services/`.
+
+```
+Next.js UI            ─┐
+Internal API routes    ─┼──▶  Service Layer (lib/services/*)  ──▶ Supabase (data)
+MCP Server (Phase 3)   ─┘                                     ──▶ Event Bus (internal)
+```
+
+Examples: `linkService.create()`, `linkService.getBySlug()`, `analyticsService.getClicksForLink()`, `workspaceService.listMembers()`.
+
+**Why this matters:**
+- **Modularity:** UI and business logic are fully decoupled. Any surface (web dashboard, REST API, admin panel, future mobile app, future MCP server) calls the exact same functions — no duplicated logic, no drift.
+- **Phase 3 readiness:** When we eventually build an MCP server so AI agents (Claude, ChatGPT, etc.) can manage links directly, it will be a **thin adapter** that exposes existing service functions as MCP tools — not a rewrite.
+- **AI-native from day one, without building AI now:** We are not adding any AI feature in the MVP. But because logic lives in isolated, typed, single-purpose functions instead of scattered across UI code, both a future AI insights engine and a future AI coding agent (extending this codebase) can reason about and reuse the logic safely.
+
+### Internal Event Bus
+
+Key domain events are emitted (not polled) at the moment they happen: `link.created`, `link.clicked`, `link.expired`, `link.deleted`, `workspace.member_added`, etc.
+
+In the MVP, the event bus has exactly one listener: writing the click record to Supabase (`clicks` table) asynchronously via `ctx.waitUntil()`. Nothing else subscribes yet.
+
+This matters because Phase 2/3 features — webhooks, Slack notifications, click-anomaly detection, AI insight generation — are **new listeners**, not new plumbing. The redirect/link-creation core code is never touched again once it ships.
+
+### Data shape discipline for future AI/analytics use
+
+Click and usage data is stored in **typed, dimensional columns** from day one (device, browser, OS, country, referrer, timestamp as separate indexed fields) rather than an opaque JSON blob. This is what makes future anomaly-detection or AI-insight features possible without a data migration — the data is already query-ready and model-ready.
+
+## 9. Deployment Pipeline
 
 ```
 git push → GitHub main branch
