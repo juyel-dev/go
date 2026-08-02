@@ -1,4 +1,4 @@
-# Admin Panel — "go"
+# Admin Panel — "shrtly"
 
 **Status:** Draft v1
 **Last updated:** 2026-08-02
