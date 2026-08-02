@@ -3,62 +3,68 @@
 > This file exists so a new AI chat session can read the repo and immediately continue work
 > without needing the human to re-explain context. Always read this file first.
 
-**Last updated:** 2026-08-01
+**Last updated:** 2026-08-02
 
 ## Current Phase
-**Planning Phase** — writing foundational docs before any code is written.
-Workflow rule (human-set): **discuss and get explicit agreement in chat BEFORE writing/pushing any new doc.**
-Small, previously-agreed updates to existing docs (like this one) can be pushed directly.
+**Planning phase COMPLETE.** Moving into code scaffolding next.
+Workflow rule (human-set): discuss and get explicit agreement in chat before writing docs that
+involve subjective/product decisions. For implementation work that follows already-agreed docs,
+proceed directly (human's explicit instruction: "ar besi alochona korte hobe na, proceed").
 
-## Decisions locked in so far
-- Product: production-grade multi-user SaaS URL shortener (not a hobby project)
-- Zero cost to start: Cloudflare Pages (free) + Cloudflare Workers KV (free) + Supabase (free)
-- No custom domain for MVP — app lives at `https://go.pages.dev`, short links at `https://go.pages.dev/{slug}`
-- Auth: Supabase Auth, both anonymous quick-shorten AND full account dashboard supported
-- Redirect architecture: Cloudflare edge middleware → KV cache (metadata JSON) → Supabase Postgres on cache miss
-- Click analytics logged directly to Supabase (never to KV, due to 1,000 writes/day KV limit)
-- Reserved-slug list required because short links share the domain root with app routes
-- **Ultra-modular architecture required:** Domain-Driven Modular Monolith — Links, Analytics, Auth,
-  Workspaces, Billing, Notifications, Admin each as self-contained modules with clean interfaces
-- **Design for Phase 3 now, build incrementally:** schema/interfaces accommodate future features
-  (A/B variants, webhooks, teams/roles) from day one without being built/exposed until needed
-- **Service Layer Pattern (agent-ready by design):** ALL business logic lives in typed, pure
-  functions in `lib/services/`. UI, API routes, and future MCP server all call the same functions —
-  never direct DB access from UI/API layer.
-- **Internal Event Bus:** domain events (`link.created`, `link.clicked`, `link.expired`, etc.)
-  emitted at the source. MVP has one listener (click logging to Supabase). Phase 2/3 features
-  (webhooks, AI anomaly detection, Slack notifications) are new listeners, not core rewrites.
-- **AI strategy:** NOT building AI features now (explicitly deferred to Phase 3). But architecture
-  must make Phase 3 AI additions (MCP server, AI insights, anomaly detection) pure additions, not
-  rewrites — this is why the Service Layer + Event Bus + typed dimensional analytics data exist.
-  Human's stated reasoning: AI will increasingly control/drive software; codebase must stay
-  legible and extensible to both human and AI maintainers.
+## Decisions locked in (see docs/ for full detail)
+- Production-grade multi-user SaaS URL shortener, zero cost to start
+- Stack: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui, Cloudflare Pages + Workers KV,
+  Supabase Postgres + Auth
+- No custom domain in MVP — `https://go.pages.dev/{slug}`
+- Redirect: edge middleware → KV metadata cache (cache-aside) → Supabase on miss
+- Anonymous quick-shorten (7-day expiry, cookie-based claim-on-signup) + full auth dashboard
+- Ultra-modular: Domain-Driven Modular Monolith, Service Layer pattern (all business logic in
+  `lib/services/`, UI/API/future-MCP never touch DB directly), internal Event Bus
+- Schema and interfaces designed for Phase 2/3 (teams, webhooks, A/B testing, API keys, custom
+  domains) from day one — tables exist, features don't ship until their phase
+- AI strategy: no AI features built now; Service Layer + Event Bus + typed dimensional analytics
+  data specifically chosen so Phase 3 AI/MCP additions are additive, not rewrites
+- Design: corporate/professional/trustworthy direction, system-preference dark/light mode,
+  Geist Sans (UI) + Geist Mono with tabular figures (all data — the signature element)
+- Device-adaptive screens: mobile/tablet/desktop composition files sharing one data/hook layer,
+  device-class cookie set by middleware from User-Agent, CSS-breakpoint fallback
+- Plugin registry formalizing the Event Bus — MVP features built AS plugins so the pattern is
+  proven, not retrofitted, when Phase 2/3 features arrive
+- Rate limiting: app-level via KV counters (not Cloudflare's paid-tier rate limit rules)
+- Full screen inventory, user flows, empty/error-state copy, admin panel spec, and edge
+  cases/failure modes are documented — see docs/SCREENS.md, ADMIN_PANEL.md, EDGE_CASES.md
 
-## Completed
-- [x] Competitive research (Dub.co, Bitly, Short.io, Rebrandly, Cutt.ly)
-- [x] Free-tier limits research (Cloudflare KV/Workers, Supabase)
-- [x] `docs/PRD.md` written
-- [x] `docs/ARCHITECTURE.md` written (incl. Service Layer Pattern + Event Bus + AI-readiness section)
-- [x] `docs/DATABASE.md` written (full schema, RLS policies, anonymous-link 7-day expiry + claim flow, event_log)
-- [x] `docs/API.md` written (service layer signatures, Server Actions + reserved /api/v1/, KV-based rate limiting)
-- [x] `docs/DESIGN_SYSTEM.md` written (corporate/trustworthy direction, system dark/light, Geist Sans + Geist Mono
-      signature — mono tabular figures for all data, shadcn/ui token mapping)
-- [x] `docs/FOLDER_STRUCTURE.md` written (device-adaptive screens: mobile/tablet/desktop composition
-      files sharing one data layer + device-class cookie; plugin registry formalizing the event bus —
-      MVP features built AS plugins so the pattern is proven, not retrofitted)
+## Completed (all in docs/)
+- [x] PRD.md — product vision, competitive research, MVP/Phase2/Phase3 scope
+- [x] ARCHITECTURE.md — redirect flow, reserved paths, security model, service layer, event bus,
+      Supabase keepalive strategy, free-tier budget table
+- [x] DATABASE.md — full schema, RLS policies (SQL), anonymous-link claim flow, event_log,
+      public redirect-resolution view, maintenance jobs
+- [x] API.md — service layer function signatures, Server Actions + reserved /api/v1/,
+      KV-based rate limiting, error handling convention
+- [x] DESIGN_SYSTEM.md — color tokens (light/dark), typography, layout, shadcn component
+      inventory, motion rules, voice/content guidelines
+- [x] FOLDER_STRUCTURE.md — full repo layout, device-adaptive screen pattern, plugin registry
+- [x] SCREENS.md — every screen, core user flows, empty/error state copy
+- [x] ADMIN_PANEL.md — access model, screens, abuse prevention
+- [x] EDGE_CASES.md — link lifecycle, anonymous/claim, free-tier limits, data lifecycle,
+      redirect edge cases
 
 ## In Progress / Next Up
-- [ ] `docs/SCREENS.md` — every screen + user flow (per device where relevant)
-- [ ] `docs/DESIGN_SYSTEM.md` — UI design system
-- [ ] `docs/SCREENS.md` — every screen + user flow
-- [ ] `docs/EDGE_CASES.md`
-- [ ] `docs/ADMIN_PANEL.md`
-- [ ] Then: scaffold the actual Next.js project
+- [ ] Scaffold the actual Next.js project per FOLDER_STRUCTURE.md
+- [ ] Set up Cloudflare Pages project + KV namespace
+- [ ] Set up Supabase project ("go" doesn't exist yet as a Supabase project — currently only
+      "AI Autopilot" and "TEST_PROJECT" exist in the account)
+- [ ] Run initial DB migration from DATABASE.md schema
+- [ ] Set up GitHub Actions: CI (lint/typecheck/build), Cloudflare Pages deploy, Supabase keepalive
+- [ ] Implement Service Layer (linkService first — it's the critical path)
+- [ ] Implement middleware (reserved-path check + slug resolution + device detection)
+- [ ] Build MVP screens starting with: public quick-shorten, dashboard links list
 
 ## Open Questions for Human
-(none blocking right now)
+(none blocking)
 
 ## How to resume in a new chat session
 Tell Claude: "go repo দেখে state.md পড়ে কাজ শুরু করো" — Claude will read this file, check
-`docs/` for what's already written, and continue from "In Progress / Next Up". Remember: discuss
-before writing new docs, per the human's explicit workflow preference.
+`docs/` for what's already decided, and continue from "In Progress / Next Up". Discuss subjective/
+product decisions before writing; proceed directly on implementation that follows agreed docs.
