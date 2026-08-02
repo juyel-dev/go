@@ -1,4 +1,4 @@
-# Database Design — "go"
+# Database Design — "shrtly"
 
 **Status:** Draft v1 (agreed in chat 2026-08-02)
 **Engine:** Supabase Postgres
