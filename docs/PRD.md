@@ -1,4 +1,4 @@
-# Product Requirements Document — "go"
+# Product Requirements Document — "shrtly"
 
 **Status:** Draft v1
 **Last updated:** 2026-08-01
@@ -8,7 +8,7 @@
 
 ## 1. Vision
 
-"go" is a production-grade, ultra-modular URL shortener SaaS — a self-hosted alternative to Dub.co / Bitly / Short.io, built to run at **zero cost** on free tiers (Cloudflare Pages + Cloudflare Workers KV + Supabase), while following the same architectural discipline as venture-backed link management platforms.
+"shrtly" is a production-grade, ultra-modular URL shortener SaaS — a self-hosted alternative to Dub.co / Bitly / Short.io, built to run at **zero cost** on free tiers (Cloudflare Pages + Cloudflare Workers KV + Supabase), while following the same architectural discipline as venture-backed link management platforms.
 
 It is not a weekend hobby project. It is designed to scale from a free-tier MVP into a paid, multi-tenant SaaS product without requiring a rewrite.
 
@@ -27,18 +27,18 @@ Key differentiators identified in the market:
 - Short.io: generous free tier, but a more complex/technical dashboard.
 - Rebrandly: multi-brand/multi-domain focus.
 
-**"go" positioning:** A modern, self-hosted, zero-cost-to-start link platform combining Dub.co-style UX (folders, tags, real-time analytics, QR codes) with full ownership of data (your own Supabase project, your own Cloudflare account) — no vendor lock-in, no per-click billing surprises.
+**"shrtly" positioning:** A modern, self-hosted, zero-cost-to-start link platform combining Dub.co-style UX (folders, tags, real-time analytics, QR codes) with full ownership of data (your own Supabase project, your own Cloudflare account) — no vendor lock-in, no per-click billing surprises.
 
 ## 4. Feature Scope
 
 ### 4.1 MVP (Phase 1) — free-tier, zero cost, no custom domain
 
-- Public "quick shorten" (no login required) at `go.pages.dev`
+- Public "quick shorten" (no login required) at `shrtly.pages.dev`
 - Full auth (Supabase Auth: email/password + Google OAuth)
 - Dashboard: create/edit/delete/archive links
 - Custom slug + auto-generated slug (nanoid-based, collision-checked)
 - Reserved-word protection (see ARCHITECTURE.md) so slugs can't collide with app routes
-- Short link format: `https://go.pages.dev/{slug}`
+- Short link format: `https://shrtly.pages.dev/{slug}`
 - Click analytics: total clicks, click-through time series, device, browser, OS, country, referrer
 - QR code auto-generated per link
 - Link expiration (date-based and/or click-count-based)
@@ -75,7 +75,7 @@ Key differentiators identified in the market:
 - **Performance:** Redirect response time target < 100ms globally (edge-cached via KV).
 - **Availability:** Mitigate Supabase free-tier 7-day inactivity pause via scheduled GitHub Actions heartbeat.
 - **Security:** Row Level Security on every table, no client ever gets direct unrestricted DB access, rate limiting on all public write endpoints, password-protected links hashed (never stored plaintext).
-- **Scalability:** Architecture must allow swapping "go.pages.dev" for a custom domain, and free tier for paid tier, without schema or code rewrites — only configuration changes.
+- **Scalability:** Architecture must allow swapping "shrtly.pages.dev" for a custom domain, and free tier for paid tier, without schema or code rewrites — only configuration changes.
 
 ## 6. Out of Scope (for now)
 
