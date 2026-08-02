@@ -1,4 +1,4 @@
-# Project State — "go"
+# Project State — "shrtly"
 
 > This file exists so a new AI chat session can read the repo and immediately continue work
 > without needing the human to re-explain context. Always read this file first.
@@ -15,7 +15,7 @@ proceed directly (human's explicit instruction: "ar besi alochona korte hobe na,
 - Production-grade multi-user SaaS URL shortener, zero cost to start
 - Stack: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui, Cloudflare Pages + Workers KV,
   Supabase Postgres + Auth
-- No custom domain in MVP — `https://go.pages.dev/{slug}`
+- No custom domain in MVP — `https://shrtly.pages.dev/{slug}`
 - Redirect: edge middleware → KV metadata cache (cache-aside) → Supabase on miss
 - Anonymous quick-shorten (7-day expiry, cookie-based claim-on-signup) + full auth dashboard
 - Ultra-modular: Domain-Driven Modular Monolith, Service Layer pattern (all business logic in
@@ -50,9 +50,28 @@ proceed directly (human's explicit instruction: "ar besi alochona korte hobe na,
 - [x] EDGE_CASES.md — link lifecycle, anonymous/claim, free-tier limits, data lifecycle,
       redirect edge cases
 
+## Naming
+- **Product/brand name:** "shrtly" — this is the public-facing name used in all docs, UI copy,
+  and the live URL (`https://shrtly.pages.dev`).
+- **GitHub repo name:** stays `go` (internal codename — repos are hard to rename cleanly once
+  cloned/linked; not worth the churn for an internal identifier).
+- **Supabase project name:** stays `go` (same reasoning — internal infra label, not user-facing).
+- Human should not be surprised seeing "go" in repo URLs / Supabase dashboard while the product
+  itself is called "shrtly" everywhere else — this is intentional, not an inconsistency bug.
+
 ## Infra Setup Progress
-- [x] Supabase project created: name "go", project_id `ioitmtstrryvjkypaexq`, region ap-south-1,
+- [x] Supabase project created: name "go" (internal project/codename, unrelated to product brand),
+      project_id `ioitmtstrryvjkypaexq`, region ap-south-1,
       org ebjsoxwjbizaawjeelde, cost $0/mo (free tier)
+- [x] Cloudflare Pages project created: name `shrtly`, live at `https://shrtly.pages.dev`,
+      production branch `main`, build command `npx @cloudflare/next-on-pages@1`,
+      destination dir `.vercel/output/static`
+- [x] Cloudflare Workers KV namespace created: `go-links-cache`
+      (id `d080141c8a9d4441a82d944dbce60b4c`), bound as `LINKS_KV` in both production and
+      preview deployment configs of the Pages project
+- [x] Old Cloudflare Pages project (originally named `go`, before the `go.pages.dev` subdomain
+      was found to be globally taken) was deleted after `shrtly` was created — no orphaned
+      resources left behind
 - [x] Full DB schema applied (all tables from DATABASE.md: workspaces, workspace_members, folders,
       links, clicks, event_log + future-ready domains/link_variants/webhook_subscriptions/api_keys)
 - [x] Triggers: auto-create default workspace on signup, click_count denormalization, updated_at
