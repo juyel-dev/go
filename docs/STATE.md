@@ -40,9 +40,10 @@ Small, previously-agreed updates to existing docs (like this one) can be pushed 
 - [x] `docs/PRD.md` written
 - [x] `docs/ARCHITECTURE.md` written (incl. Service Layer Pattern + Event Bus + AI-readiness section)
 - [x] `docs/DATABASE.md` written (full schema, RLS policies, anonymous-link 7-day expiry + claim flow, event_log)
+- [x] `docs/API.md` written (service layer signatures, Server Actions + reserved /api/v1/, KV-based rate limiting)
 
 ## In Progress / Next Up
-- [ ] `docs/API.md` — API/server-action contracts (service layer function signatures)
+- [ ] `docs/DESIGN_SYSTEM.md` — UI design system
 - [ ] `docs/DESIGN_SYSTEM.md` — UI design system
 - [ ] `docs/FOLDER_STRUCTURE.md` — finalized Next.js project structure
 - [ ] `docs/SCREENS.md` — every screen + user flow
