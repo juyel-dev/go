@@ -1,4 +1,4 @@
-# Design System — "go"
+# Design System — "shrtly"
 
 **Status:** Draft v1 (agreed in chat 2026-08-02)
 **Direction:** Corporate / professional / trustworthy (Bitly-adjacent), system-preference dark/light, shadcn/ui + Tailwind
@@ -8,7 +8,7 @@
 
 ## 1. Design Thesis
 
-"go" is infrastructure, not a toy. The people using it are trusting it to keep their links alive and their click data accurate — the UI should read like a precision instrument, not a marketing gimmick. Every generic "AI SaaS" look (warm cream + serif hero, black background + neon accent, zero-radius broadsheet) is deliberately avoided here — none of them say "reliable infrastructure."
+"shrtly" is infrastructure, not a toy. The people using it are trusting it to keep their links alive and their click data accurate — the UI should read like a precision instrument, not a marketing gimmick. Every generic "AI SaaS" look (warm cream + serif hero, black background + neon accent, zero-radius broadsheet) is deliberately avoided here — none of them say "reliable infrastructure."
 
 **Signature element:** every piece of *data* in the product — link slugs, click counts, dates, API keys, timestamps — is rendered in a monospaced face with tabular figures. Everything else (labels, navigation, prose) uses a clean grotesque sans. This single, consistent rule is what makes the product feel engineered and precise without needing decoration.
 
