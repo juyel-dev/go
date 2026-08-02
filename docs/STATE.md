@@ -43,9 +43,12 @@ Small, previously-agreed updates to existing docs (like this one) can be pushed 
 - [x] `docs/API.md` written (service layer signatures, Server Actions + reserved /api/v1/, KV-based rate limiting)
 - [x] `docs/DESIGN_SYSTEM.md` written (corporate/trustworthy direction, system dark/light, Geist Sans + Geist Mono
       signature — mono tabular figures for all data, shadcn/ui token mapping)
+- [x] `docs/FOLDER_STRUCTURE.md` written (device-adaptive screens: mobile/tablet/desktop composition
+      files sharing one data layer + device-class cookie; plugin registry formalizing the event bus —
+      MVP features built AS plugins so the pattern is proven, not retrofitted)
 
 ## In Progress / Next Up
-- [ ] `docs/FOLDER_STRUCTURE.md` — finalized Next.js project structure
+- [ ] `docs/SCREENS.md` — every screen + user flow (per device where relevant)
 - [ ] `docs/DESIGN_SYSTEM.md` — UI design system
 - [ ] `docs/SCREENS.md` — every screen + user flow
 - [ ] `docs/EDGE_CASES.md`
