@@ -41,11 +41,12 @@ Small, previously-agreed updates to existing docs (like this one) can be pushed 
 - [x] `docs/ARCHITECTURE.md` written (incl. Service Layer Pattern + Event Bus + AI-readiness section)
 - [x] `docs/DATABASE.md` written (full schema, RLS policies, anonymous-link 7-day expiry + claim flow, event_log)
 - [x] `docs/API.md` written (service layer signatures, Server Actions + reserved /api/v1/, KV-based rate limiting)
+- [x] `docs/DESIGN_SYSTEM.md` written (corporate/trustworthy direction, system dark/light, Geist Sans + Geist Mono
+      signature — mono tabular figures for all data, shadcn/ui token mapping)
 
 ## In Progress / Next Up
-- [ ] `docs/DESIGN_SYSTEM.md` — UI design system
-- [ ] `docs/DESIGN_SYSTEM.md` — UI design system
 - [ ] `docs/FOLDER_STRUCTURE.md` — finalized Next.js project structure
+- [ ] `docs/DESIGN_SYSTEM.md` — UI design system
 - [ ] `docs/SCREENS.md` — every screen + user flow
 - [ ] `docs/EDGE_CASES.md`
 - [ ] `docs/ADMIN_PANEL.md`
