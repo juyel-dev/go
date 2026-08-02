@@ -1,4 +1,4 @@
-# API & Service Layer Design — "go"
+# API & Service Layer Design — "shrtly"
 
 **Status:** Draft v1 (agreed in chat 2026-08-02)
 **Last updated:** 2026-08-02
