@@ -1,4 +1,4 @@
-# Screens & User Flows — "go"
+# Screens & User Flows — "shrtly"
 
 **Status:** Draft v1
 **Last updated:** 2026-08-02
@@ -52,7 +52,7 @@ Dashboard → Links → "Create link" → form:
 
 ### 2.3 Visiting a short link (end-user, not the link owner)
 ```
-GET go.pages.dev/{slug}
+GET shrtly.pages.dev/{slug}
   → reserved path?      → yes: normal app route
   → KV hit, active, no password → 302 redirect (< 100ms) + async click log
   → KV hit, password required   → password-gate screen → correct → redirect
