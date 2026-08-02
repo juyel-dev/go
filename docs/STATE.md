@@ -50,13 +50,31 @@ proceed directly (human's explicit instruction: "ar besi alochona korte hobe na,
 - [x] EDGE_CASES.md — link lifecycle, anonymous/claim, free-tier limits, data lifecycle,
       redirect edge cases
 
+## Infra Setup Progress
+- [x] Supabase project created: name "go", project_id `ioitmtstrryvjkypaexq`, region ap-south-1,
+      org ebjsoxwjbizaawjeelde, cost $0/mo (free tier)
+- [x] Full DB schema applied (all tables from DATABASE.md: workspaces, workspace_members, folders,
+      links, clicks, event_log + future-ready domains/link_variants/webhook_subscriptions/api_keys)
+- [x] Triggers: auto-create default workspace on signup, click_count denormalization, updated_at
+- [x] RLS enabled + policies applied on every table
+- [x] public_link_resolution view created for anonymous redirect-resolution reads
+- [x] Security hardening: view set to security_invoker, function search_path pinned,
+      handle_new_user/increment_link_click_count EXECUTE revoked from anon/authenticated/public
+      (trigger-only functions must never be directly callable via PostgREST RPC)
+- [x] Performance hardening: added all missing FK indexes, wrapped auth.uid() in (select ...) in
+      every RLS policy, consolidated links INSERT policies where sensible
+- [x] Security advisor: 0 warnings. Performance advisor: only expected "unused index" (no data yet)
+      and one accepted multiple-permissive-policy trade-off on links INSERT (anon vs member insert
+      are genuinely different conditions — kept separate for readability)
+- Note for future session: the Supabase project has NOT yet had `pg_cron` expired-link cleanup job
+  or auth email templates configured — still pending.
+
 ## In Progress / Next Up
-- [ ] Scaffold the actual Next.js project per FOLDER_STRUCTURE.md
 - [ ] Set up Cloudflare Pages project + KV namespace
-- [ ] Set up Supabase project ("go" doesn't exist yet as a Supabase project — currently only
-      "AI Autopilot" and "TEST_PROJECT" exist in the account)
-- [ ] Run initial DB migration from DATABASE.md schema
+- [ ] Set up `pg_cron` job for expired anonymous link cleanup (DATABASE.md §6)
 - [ ] Set up GitHub Actions: CI (lint/typecheck/build), Cloudflare Pages deploy, Supabase keepalive
+- [ ] Scaffold the actual Next.js project per FOLDER_STRUCTURE.md
+- [ ] Generate TypeScript types from Supabase schema
 - [ ] Implement Service Layer (linkService first — it's the critical path)
 - [ ] Implement middleware (reserved-path check + slug resolution + device detection)
 - [ ] Build MVP screens starting with: public quick-shorten, dashboard links list
