@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --surface: #f7f8fa;
+  --border: #e4e7ec;
+  --foreground: #101828;
+  --muted-foreground: #475467;
+  --primary: #1b3a6b;
+  --primary-foreground: #ffffff;
+  --accent: #2f6fed;
+  --accent-foreground: #ffffff;
+  --success: #12b76a;
+  --warning: #f79009;
+  --destructive: #f04438;
+  --destructive-foreground: #ffffff;
+  --ring: #2f6fed;
+  --input: #e4e7ec;
+  --secondary: #f7f8fa;
+  --secondary-foreground: #101828;
+  --muted: #f7f8fa;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+}
+
+.dark {
+  --background: #0b1220;
+  --surface: #131b2c;
+  --border: #24304a;
+  --foreground: #f2f4f7;
+  --muted-foreground: #94a3b8;
+  --primary: #3b5c93;
+  --primary-foreground: #f2f4f7;
+  --accent: #5b8def;
+  --accent-foreground: #0b1220;
+  --success: #32d583;
+  --warning: #fdb022;
+  --destructive: #f97066;
+  --destructive-foreground: #0b1220;
+  --ring: #5b8def;
+  --input: #24304a;
+  --secondary: #131b2c;
+  --secondary-foreground: #f2f4f7;
+  --muted: #131b2c;
+  --card: #131b2c;
+  --card-foreground: #f2f4f7;
+  --popover: #131b2c;
+  --popover-foreground: #f2f4f7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: var(--ring);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+  /* Signature element (DESIGN_SYSTEM.md §1, §3): all data -- slugs, click counts,
+     dates, API keys -- renders in mono with tabular figures. */
+  .data-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
