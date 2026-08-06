@@ -1,107 +1,110 @@
-# Project State — "shrtly"
+# Project State — "shrtly" (repo/codename: "go")
 
 > This file exists so a new AI chat session can read the repo and immediately continue work
 > without needing the human to re-explain context. Always read this file first.
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-06
 
 ## Current Phase
-**Planning phase COMPLETE.** Moving into code scaffolding next.
-Workflow rule (human-set): discuss and get explicit agreement in chat before writing docs that
-involve subjective/product decisions. For implementation work that follows already-agreed docs,
-proceed directly (human's explicit instruction: "ar besi alochona korte hobe na, proceed").
+**Code scaffolding phase.** Planning is complete (see "Planning Docs" below). Core architecture
+and the MVP's critical-path redirect engine are built and pushed. Auth/dashboard UI is next.
 
-## Decisions locked in (see docs/ for full detail)
-- Production-grade multi-user SaaS URL shortener, zero cost to start
-- Stack: Next.js (App Router) + TypeScript + Tailwind + shadcn/ui, Cloudflare Pages + Workers KV,
-  Supabase Postgres + Auth
-- No custom domain in MVP — `https://shrtly.pages.dev/{slug}`
-- Redirect: edge middleware → KV metadata cache (cache-aside) → Supabase on miss
-- Anonymous quick-shorten (7-day expiry, cookie-based claim-on-signup) + full auth dashboard
-- Ultra-modular: Domain-Driven Modular Monolith, Service Layer pattern (all business logic in
-  `lib/services/`, UI/API/future-MCP never touch DB directly), internal Event Bus
-- Schema and interfaces designed for Phase 2/3 (teams, webhooks, A/B testing, API keys, custom
-  domains) from day one — tables exist, features don't ship until their phase
-- AI strategy: no AI features built now; Service Layer + Event Bus + typed dimensional analytics
-  data specifically chosen so Phase 3 AI/MCP additions are additive, not rewrites
-- Design: corporate/professional/trustworthy direction, system-preference dark/light mode,
-  Geist Sans (UI) + Geist Mono with tabular figures (all data — the signature element)
-- Device-adaptive screens: mobile/tablet/desktop composition files sharing one data/hook layer,
-  device-class cookie set by middleware from User-Agent, CSS-breakpoint fallback
-- Plugin registry formalizing the Event Bus — MVP features built AS plugins so the pattern is
-  proven, not retrofitted, when Phase 2/3 features arrive
-- Rate limiting: app-level via KV counters (not Cloudflare's paid-tier rate limit rules)
-- Full screen inventory, user flows, empty/error-state copy, admin panel spec, and edge
-  cases/failure modes are documented — see docs/SCREENS.md, ADMIN_PANEL.md, EDGE_CASES.md
-
-## Completed (all in docs/)
-- [x] PRD.md — product vision, competitive research, MVP/Phase2/Phase3 scope
-- [x] ARCHITECTURE.md — redirect flow, reserved paths, security model, service layer, event bus,
-      Supabase keepalive strategy, free-tier budget table
-- [x] DATABASE.md — full schema, RLS policies (SQL), anonymous-link claim flow, event_log,
-      public redirect-resolution view, maintenance jobs
-- [x] API.md — service layer function signatures, Server Actions + reserved /api/v1/,
-      KV-based rate limiting, error handling convention
-- [x] DESIGN_SYSTEM.md — color tokens (light/dark), typography, layout, shadcn component
-      inventory, motion rules, voice/content guidelines
-- [x] FOLDER_STRUCTURE.md — full repo layout, device-adaptive screen pattern, plugin registry
-- [x] SCREENS.md — every screen, core user flows, empty/error state copy
-- [x] ADMIN_PANEL.md — access model, screens, abuse prevention
-- [x] EDGE_CASES.md — link lifecycle, anonymous/claim, free-tier limits, data lifecycle,
-      redirect edge cases
+Workflow rule (human-set): discuss and get explicit agreement before writing docs involving
+subjective/product decisions. For implementation that follows already-agreed docs, proceed
+directly without re-discussing every step.
 
 ## Naming
-- **Product/brand name:** "shrtly" — this is the public-facing name used in all docs, UI copy,
-  and the live URL (`https://shrtly.pages.dev`).
-- **GitHub repo name:** stays `go` (internal codename — repos are hard to rename cleanly once
-  cloned/linked; not worth the churn for an internal identifier).
-- **Supabase project name:** stays `go` (same reasoning — internal infra label, not user-facing).
-- Human should not be surprised seeing "go" in repo URLs / Supabase dashboard while the product
-  itself is called "shrtly" everywhere else — this is intentional, not an inconsistency bug.
+- **Product/brand name:** "shrtly"
+- **GitHub repo name / Supabase project name:** stay `go` (internal codenames, not renamed to
+  avoid churn) -- do not be surprised seeing "go" in repo/Supabase URLs.
 
-## Infra Setup Progress
-- [x] Supabase project created: name "go" (internal project/codename, unrelated to product brand),
-      project_id `ioitmtstrryvjkypaexq`, region ap-south-1,
-      org ebjsoxwjbizaawjeelde, cost $0/mo (free tier)
-- [x] Cloudflare Pages project created: name `shrtly`, live at `https://shrtly.pages.dev`,
-      production branch `main`, build command `npx @cloudflare/next-on-pages@1`,
-      destination dir `.vercel/output/static`
-- [x] Cloudflare Workers KV namespace created: `go-links-cache`
-      (id `d080141c8a9d4441a82d944dbce60b4c`), bound as `LINKS_KV` in both production and
-      preview deployment configs of the Pages project
-- [x] Old Cloudflare Pages project (originally named `go`, before the `go.pages.dev` subdomain
-      was found to be globally taken) was deleted after `shrtly` was created — no orphaned
-      resources left behind
-- [x] Full DB schema applied (all tables from DATABASE.md: workspaces, workspace_members, folders,
-      links, clicks, event_log + future-ready domains/link_variants/webhook_subscriptions/api_keys)
-- [x] Triggers: auto-create default workspace on signup, click_count denormalization, updated_at
-- [x] RLS enabled + policies applied on every table
-- [x] public_link_resolution view created for anonymous redirect-resolution reads
-- [x] Security hardening: view set to security_invoker, function search_path pinned,
-      handle_new_user/increment_link_click_count EXECUTE revoked from anon/authenticated/public
-      (trigger-only functions must never be directly callable via PostgREST RPC)
-- [x] Performance hardening: added all missing FK indexes, wrapped auth.uid() in (select ...) in
-      every RLS policy, consolidated links INSERT policies where sensible
-- [x] Security advisor: 0 warnings. Performance advisor: only expected "unused index" (no data yet)
-      and one accepted multiple-permissive-policy trade-off on links INSERT (anon vs member insert
-      are genuinely different conditions — kept separate for readability)
-- Note for future session: the Supabase project has NOT yet had `pg_cron` expired-link cleanup job
-  or auth email templates configured — still pending.
+## Planning Docs (all complete, in docs/)
+PRD.md, ARCHITECTURE.md, DATABASE.md, API.md, DESIGN_SYSTEM.md, FOLDER_STRUCTURE.md, SCREENS.md,
+ADMIN_PANEL.md, EDGE_CASES.md -- read these for full product/architecture/design rationale.
+
+## Infra Status
+
+### Supabase (project "go", id `ioitmtstrryvjkypaexq`, region ap-south-1, $0/mo)
+- Full schema, RLS (0 security advisor warnings), triggers, public_link_resolution view,
+  pg_cron daily expired-anonymous-link cleanup -- all live.
+- Password hashing deviates from ARCHITECTURE.md's "bcrypt/argon2" wording: actually implemented
+  as salted PBKDF2 (210k iterations, SHA-256) via Web Crypto, because bcrypt/argon2 need native
+  bindings unavailable on the Cloudflare Workers edge runtime. This is documented in code
+  (lib/services/linkService.ts) -- ARCHITECTURE.md §5 should be updated to match (not yet done).
+
+### Cloudflare
+- **Deploy target is Cloudflare Workers via `@opennextjs/cloudflare`, NOT Cloudflare Pages.**
+  Course-corrected mid-build: `@cloudflare/next-on-pages` only supports Next.js <=15.5 and is
+  effectively deprecated; Cloudflare's own docs now recommend OpenNext (GA Feb 2026).
+  The original Cloudflare Pages project (first named `go`, then `shrtly`) was deleted.
+  **Live URL is now `<worker-name>.<account-subdomain>.workers.dev` once first deployed** --
+  `shrtly.pages.dev` referenced in earlier docs/README is stale and needs updating once the
+  actual workers.dev URL (or a custom domain) is confirmed after first deploy.
+- KV namespace `go-links-cache` (id `d080141c8a9d4441a82d944dbce60b4c`), bound as `LINKS_KV` in
+  wrangler.jsonc (declared in-repo now, not via Pages dashboard binding -- that's the Workers way).
+- GitHub Actions secrets set: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- **BLOCKING: `SUPABASE_SERVICE_ROLE_KEY` secret still needed** -- Claude cannot fetch this via
+  the Supabase MCP (intentionally restricted). Waiting on the human to paste it from Supabase
+  dashboard > Settings > API > service_role key.
+- **BLOCKING: GitHub Actions is not actually running** -- workflows are registered ("active") but
+  zero runs triggered on push, and manual `workflow_dispatch` returns HTTP 500. Likely causes:
+  GitHub account phone/email verification pending, or Actions spending limit set to $0. Human
+  needs to check GitHub Settings > Billing and plans > Spending limits, and check for any pending
+  verification prompts from GitHub. Cannot be diagnosed/fixed via the API from this side.
+
+## Code Scaffold Status (pushed to `main`, commits up to `0dae05a`)
+- Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn/ui (components fetched via the
+  Shadcn UI MCP tool, since `npx shadcn init` hangs -- `ui.shadcn.com` isn't in the sandbox's
+  network allowlist)
+- Self-hosted Geist fonts via the `geist` npm package (not `next/font/google`) -- more CI-reliable,
+  avoids a network fetch to Google Fonts at build time
+- Design tokens (DESIGN_SYSTEM.md §2) implemented in `app/globals.css`, light + dark, wired to
+  `next-themes` (`attribute="class"`, `defaultTheme="system"`)
+- Built and verified locally: `npx tsc --noEmit` (0 errors), `npx eslint .` (0 errors),
+  `next build` (succeeds), `opennextjs-cloudflare build` (succeeds, produces `.open-next/worker.js`),
+  `wrangler deploy --dry-run` (validates KV binding correctly) -- **never actually deployed yet**
+  (deploy requires reaching api.cloudflare.com, blocked by the sandbox's network allowlist; must
+  happen via GitHub Actions, which is currently blocked -- see above)
+- **IMPORTANT gotcha recorded in code comments:** kept the file named `middleware.ts` (not
+  renamed to `proxy.ts` as Next.js 16's upgrade guide suggests) because `@opennextjs/cloudflare`
+  does not yet support the Node.js-runtime `proxy` convention (confirmed via GitHub issues,
+  fails with "Node.js middleware is not currently supported"). Revisit once OpenNext adds support.
+- Implemented: `lib/services/linkService.ts` (create/getBySlug/listForWorkspace/archive/
+  claimAnonymousLinks/verifyPassword), `lib/services/eventBus.ts`, `lib/plugins/registry.ts` +
+  one built-in plugin (expiry-cleanup), `lib/kv/cacheService.ts`, `middleware.ts` (full redirect
+  engine: reserved-path check -> KV cache-aside -> Supabase fallback -> password/expiry handling
+  -> non-blocking click logging via `ctx.waitUntil`), `lib/reserved-slugs.ts`,
+  `lib/device/deviceClass.ts`, Supabase server/browser/service-role clients, Zod validators
+- Pages built: public quick-shorten landing (`app/(marketing)/page.tsx`, fully wired to
+  `linkService.create` via a Server Action), `/link-not-found`, `/link-expired`,
+  `/unlock/[slug]` (password-gate flow, fully wired)
+- Pages stubbed (placeholder only, marked with TODO comments): `/login`, `/signup`,
+  `/(dashboard)/links`, `/admin` -- these are the next real build targets
+- `lib/supabase/types.ts` is a placeholder (`Database = any`) -- real types need
+  `supabase gen types typescript` wired into a script + CI, not done yet
+- GitHub Actions workflows written: `ci.yml` (lint+typecheck+build), `deploy.yml`
+  (opennextjs-cloudflare build+deploy), `supabase-keepalive.yml` (daily cron) -- **none have
+  successfully run yet, see blocking issue above**
 
 ## In Progress / Next Up
-- [ ] Set up Cloudflare Pages project + KV namespace
-- [ ] Set up `pg_cron` job for expired anonymous link cleanup (DATABASE.md §6)
-- [ ] Set up GitHub Actions: CI (lint/typecheck/build), Cloudflare Pages deploy, Supabase keepalive
-- [ ] Scaffold the actual Next.js project per FOLDER_STRUCTURE.md
-- [ ] Generate TypeScript types from Supabase schema
-- [ ] Implement Service Layer (linkService first — it's the critical path)
-- [ ] Implement middleware (reserved-path check + slug resolution + device detection)
-- [ ] Build MVP screens starting with: public quick-shorten, dashboard links list
-
-## Open Questions for Human
-(none blocking)
+1. **Unblock GitHub Actions** (human needs to check billing/verification) -- nothing else deploys
+   without this
+2. **Get `SUPABASE_SERVICE_ROLE_KEY` from human**, set as GitHub secret
+3. Once both unblocked: confirm CI passes, confirm deploy succeeds, get the real
+   `*.workers.dev` URL, update it everywhere `shrtly.pages.dev` is currently referenced
+   (README.md, PRD.md, ARCHITECTURE.md, .env.example's NEXT_PUBLIC_APP_URL, STATE.md)
+4. Generate real Supabase TypeScript types, replace the `lib/supabase/types.ts` placeholder
+5. Update ARCHITECTURE.md §5 to reflect PBKDF2 (not bcrypt/argon2) for password hashing
+6. Build real auth flow (Supabase Auth email/password + Google OAuth) for `/login`, `/signup`
+7. Build the device-adaptive Links screen (`screens/links/*.mobile.tsx` /
+   `.tablet.tsx` / `.desktop.tsx` per FOLDER_STRUCTURE.md §3) wired to `linkService.listForWorkspace`
+8. Build the claim-anonymous-links post-signup flow (SCREENS.md §2.1)
+9. Wire up rate limiting (API.md §3 -- KV counters) on link creation and password attempts --
+   currently NOT implemented, anonymous create endpoint is unprotected right now
+10. Dashboard home, link detail/analytics screen, admin panel (all still TODO stubs)
 
 ## How to resume in a new chat session
-Tell Claude: "go repo দেখে state.md পড়ে কাজ শুরু করো" — Claude will read this file, check
-`docs/` for what's already decided, and continue from "In Progress / Next Up". Discuss subjective/
-product decisions before writing; proceed directly on implementation that follows agreed docs.
+Tell Claude: "go repo দেখে state.md পড়ে কাজ শুরু করো" -- Claude reads this file, checks the two
+BLOCKING items first (Actions unblocked? service role key provided?), and continues from
+"In Progress / Next Up" otherwise.
