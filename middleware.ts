@@ -22,6 +22,20 @@ import type { LinkKVMeta } from "@/lib/kv/cacheService";
  * candidate short-link slug and resolved via KV (cache-aside over Supabase).
  */
 export async function middleware(request: NextRequest) {
+  try {
+    return await handleMiddleware(request);
+  } catch (e) {
+    // TEMPORARY diagnostic wrapper -- see docs/STATE.md "debugging redirect bug".
+    // Remove once the root cause of the production redirect failure is confirmed.
+    const message = e instanceof Error ? `${e.name}: ${e.message}\n${e.stack}` : String(e);
+    return new Response(`MIDDLEWARE_DEBUG_ERROR:\n${message}`, {
+      status: 500,
+      headers: { "content-type": "text/plain" },
+    });
+  }
+}
+
+async function handleMiddleware(request: NextRequest) {
   const response = setDeviceCookie(request);
 
   const { pathname } = request.nextUrl;
