@@ -1,13 +1,8 @@
 name: Supabase Keepalive
 
-# Supabase free-tier projects pause after 7 days without API activity --
-# docs/ARCHITECTURE.md §6, DATABASE.md §6. This runs daily so "go" never
-# pauses, at zero cost. Targets `public_link_resolution` (explicit anon
-# grant, see docs/DATABASE.md §5) rather than a raw table, to sidestep any
-# RLS-vs-grant ambiguity on tables like `workspaces`.
 on:
   schedule:
-    - cron: "17 4 * * *" # 04:17 UTC daily -- arbitrary off-peak minute
+    - cron: "17 4 * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -22,12 +17,10 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}")
           body=$(echo "$response" | head -n -1)
           status=$(echo "$response" | tail -n1)
-          echo "HTTP status: $status"
-          echo "Response body: $body"
           if [ "$status" -ge 200 ] && [ "$status" -lt 300 ]; then
-            echo "Keepalive ping succeeded."
+            echo "Keepalive ping succeeded. Status: $status"
             exit 0
           else
-            echo "Keepalive ping failed."
+            echo "::error::Keepalive failed. HTTP status: $status | URL_SET=${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' }} | KEY_SET=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' }} | Body: $body"
             exit 1
           fi
