@@ -87,22 +87,43 @@ ADMIN_PANEL.md, EDGE_CASES.md -- read these for full product/architecture/design
   (opennextjs-cloudflare build+deploy), `supabase-keepalive.yml` (daily cron) -- **none have
   successfully run yet, see blocking issue above**
 
+## RESOLVED (this session)
+- GitHub Actions was blocked (0 runs triggered, workflow_dispatch returned 500) until the human
+  added a LICENSE file and made the repo public -- unclear exactly which fixed it, but Actions
+  now runs normally. If this recurs on a future repo, check for a LICENSE file and repo visibility
+  as first troubleshooting steps.
+- `SUPABASE_SERVICE_ROLE_KEY` provided by human, set as a GitHub secret.
+- **Critical bug found and fixed:** Supabase Keepalive workflow was failing with HTTP 500 /
+  Postgres error `42P17 infinite recursion detected in policy for relation "workspace_members"`.
+  The `workspace_members` RLS SELECT policy queried `workspace_members` from within its own
+  policy, causing infinite recursion. Fixed via a `SECURITY DEFINER` helper function
+  `is_workspace_member(ws_id uuid)` that checks membership without re-triggering RLS -- the
+  standard Supabase-recommended pattern for this exact problem. ALL policies that used the
+  `workspace_id in (select ... from workspace_members where user_id = auth.uid())` subquery
+  pattern were rewritten to call this function instead (workspaces, workspace_members, folders,
+  links, clicks, event_log, domains, link_variants, webhook_subscriptions, api_keys).
+  Security advisor shows 2 expected WARN-level notices (function is callable via RPC by
+  anon/authenticated) -- accepted, since it only returns a boolean and RLS policies require
+  EXECUTE to function at all.
+- **App is live:** deployed via GitHub Actions to Cloudflare Workers. URL:
+  `https://shrtly.myself-juyel-dev.workers.dev`. All references to the old (never-actually-live)
+  `shrtly.pages.dev` URL updated across docs, .env.example, and app code. Added
+  `NEXT_PUBLIC_APP_URL` as a GitHub secret, wired into both CI and deploy workflows.
+- All 3 GitHub Actions workflows (CI, Deploy, Supabase Keepalive) confirmed green.
+
 ## In Progress / Next Up
-1. **Unblock GitHub Actions** (human needs to check billing/verification) -- nothing else deploys
-   without this
-2. **Get `SUPABASE_SERVICE_ROLE_KEY` from human**, set as GitHub secret
-3. Once both unblocked: confirm CI passes, confirm deploy succeeds, get the real
-   `*.workers.dev` URL, update it everywhere `shrtly.pages.dev` is currently referenced
-   (README.md, PRD.md, ARCHITECTURE.md, .env.example's NEXT_PUBLIC_APP_URL, STATE.md)
-4. Generate real Supabase TypeScript types, replace the `lib/supabase/types.ts` placeholder
-5. Update ARCHITECTURE.md §5 to reflect PBKDF2 (not bcrypt/argon2) for password hashing
-6. Build real auth flow (Supabase Auth email/password + Google OAuth) for `/login`, `/signup`
-7. Build the device-adaptive Links screen (`screens/links/*.mobile.tsx` /
+1. Generate real Supabase TypeScript types, replace the `lib/supabase/types.ts` placeholder
+2. Update ARCHITECTURE.md §5 to reflect PBKDF2 (not bcrypt/argon2) for password hashing
+3. Build real auth flow (Supabase Auth email/password + Google OAuth) for `/login`, `/signup`
+4. Build the device-adaptive Links screen (`screens/links/*.mobile.tsx` /
    `.tablet.tsx` / `.desktop.tsx` per FOLDER_STRUCTURE.md §3) wired to `linkService.listForWorkspace`
-8. Build the claim-anonymous-links post-signup flow (SCREENS.md §2.1)
-9. Wire up rate limiting (API.md §3 -- KV counters) on link creation and password attempts --
+5. Build the claim-anonymous-links post-signup flow (SCREENS.md §2.1)
+6. Wire up rate limiting (API.md §3 -- KV counters) on link creation and password attempts --
    currently NOT implemented, anonymous create endpoint is unprotected right now
-10. Dashboard home, link detail/analytics screen, admin panel (all still TODO stubs)
+7. Dashboard home, link detail/analytics screen, admin panel (all still TODO stubs)
+8. Manually verify `https://shrtly.myself-juyel-dev.workers.dev` in a real browser end-to-end
+   (create an anonymous link, confirm redirect works) -- Claude could not verify directly, the
+   sandbox's network allowlist blocks `*.workers.dev`
 
 ## How to resume in a new chat session
 Tell Claude: "go repo দেখে state.md পড়ে কাজ শুরু করো" -- Claude reads this file, checks the two
