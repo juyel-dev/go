@@ -111,7 +111,22 @@ ADMIN_PANEL.md, EDGE_CASES.md -- read these for full product/architecture/design
   `NEXT_PUBLIC_APP_URL` as a GitHub secret, wired into both CI and deploy workflows.
 - All 3 GitHub Actions workflows (CI, Deploy, Supabase Keepalive) confirmed green.
 
+## RESOLVED (bug found after user tested the live app)
+- **Critical bug:** "Shorten" button on the live site failed with a server error. Root cause:
+  Cloudflare Workers secrets were never actually set on the deployed Worker -- GitHub Actions
+  secrets are only available at BUILD time (inlined for `NEXT_PUBLIC_*` vars by Next.js's
+  compiler), but non-public server-only vars like `SUPABASE_SERVICE_ROLE_KEY` need to be bound
+  as actual Cloudflare Worker secrets (`wrangler secret put` / Cloudflare API) to be readable via
+  `process.env` at RUNTIME on Cloudflare. `createServiceRoleClient()` was being called with an
+  undefined key, so every anonymous link creation (and click logging in middleware.ts) failed.
+  Fixed by: (1) setting all 4 needed secrets on the live Worker directly via the Cloudflare API
+  as an immediate fix, and (2) adding a "Sync runtime secrets to the Worker" step to
+  `deploy.yml` (`wrangler secret put`) so this stays correct on every future deploy, not just
+  this one-off fix. **This is an important OpenNext-on-Cloudflare gotcha worth remembering for
+  any future service/route that reads non-`NEXT_PUBLIC_` env vars.**
+
 ## In Progress / Next Up
+0. **Verify with the human that shortening a link now actually works end-to-end on the live site**
 1. Generate real Supabase TypeScript types, replace the `lib/supabase/types.ts` placeholder
 2. Update ARCHITECTURE.md §5 to reflect PBKDF2 (not bcrypt/argon2) for password hashing
 3. Build real auth flow (Supabase Auth email/password + Google OAuth) for `/login`, `/signup`

@@ -3,6 +3,12 @@ name: Deploy to Cloudflare Workers
 # Deployment pipeline -- docs/ARCHITECTURE.md §8.
 # On deploy failure: check the Actions log first, then `wrangler tail` for
 # runtime errors -- see docs/STATE.md for the autonomous fix-and-redeploy loop.
+#
+# IMPORTANT gotcha (see docs/STATE.md): NEXT_PUBLIC_* vars get inlined into
+# the build by Next.js at build time, but non-public server-only secrets
+# (SUPABASE_SERVICE_ROLE_KEY) do NOT -- Cloudflare Workers needs them bound
+# as actual Worker secrets at runtime, separate from the CI job's env. The
+# `wrangler secret put` step below keeps these in sync on every deploy.
 on:
   push:
     branches: [main]
@@ -20,12 +26,26 @@ jobs:
 
       - run: npm ci
 
-      - name: Build + Deploy (OpenNext -> Cloudflare Workers)
-        run: npm run deploy
+      - name: Build (OpenNext -> Cloudflare Workers)
+        run: npx opennextjs-cloudflare build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+
+      - name: Deploy to Cloudflare Workers
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Sync runtime secrets to the Worker
+        run: |
+          echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+          echo "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" | npx wrangler secret put NEXT_PUBLIC_SUPABASE_URL
+          echo "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" | npx wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY
+          echo "${{ secrets.NEXT_PUBLIC_APP_URL }}" | npx wrangler secret put NEXT_PUBLIC_APP_URL
+        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
