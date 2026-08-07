@@ -33,12 +33,12 @@ Key differentiators identified in the market:
 
 ### 4.1 MVP (Phase 1) — free-tier, zero cost, no custom domain
 
-- Public "quick shorten" (no login required) at `shrtly.pages.dev`
+- Public "quick shorten" (no login required) at `shrtly.myself-juyel-dev.workers.dev`
 - Full auth (Supabase Auth: email/password + Google OAuth)
 - Dashboard: create/edit/delete/archive links
 - Custom slug + auto-generated slug (nanoid-based, collision-checked)
 - Reserved-word protection (see ARCHITECTURE.md) so slugs can't collide with app routes
-- Short link format: `https://shrtly.pages.dev/{slug}`
+- Short link format: `https://shrtly.myself-juyel-dev.workers.dev/{slug}`
 - Click analytics: total clicks, click-through time series, device, browser, OS, country, referrer
 - QR code auto-generated per link
 - Link expiration (date-based and/or click-count-based)
@@ -75,7 +75,7 @@ Key differentiators identified in the market:
 - **Performance:** Redirect response time target < 100ms globally (edge-cached via KV).
 - **Availability:** Mitigate Supabase free-tier 7-day inactivity pause via scheduled GitHub Actions heartbeat.
 - **Security:** Row Level Security on every table, no client ever gets direct unrestricted DB access, rate limiting on all public write endpoints, password-protected links hashed (never stored plaintext).
-- **Scalability:** Architecture must allow swapping "shrtly.pages.dev" for a custom domain, and free tier for paid tier, without schema or code rewrites — only configuration changes.
+- **Scalability:** Architecture must allow swapping "shrtly.myself-juyel-dev.workers.dev" for a custom domain, and free tier for paid tier, without schema or code rewrites — only configuration changes.
 
 ## 6. Out of Scope (for now)
 

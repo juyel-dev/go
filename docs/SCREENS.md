@@ -52,7 +52,7 @@ Dashboard → Links → "Create link" → form:
 
 ### 2.3 Visiting a short link (end-user, not the link owner)
 ```
-GET shrtly.pages.dev/{slug}
+GET shrtly.myself-juyel-dev.workers.dev/{slug}
   → reserved path?      → yes: normal app route
   → KV hit, active, no password → 302 redirect (< 100ms) + async click log
   → KV hit, password required   → password-gate screen → correct → redirect

@@ -13,7 +13,7 @@ export function QuickShortenForm() {
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const shortUrl = result ? `${process.env.NEXT_PUBLIC_APP_URL ?? "https://shrtly.pages.dev"}/${result.slug}` : null;
+  const shortUrl = result ? `${process.env.NEXT_PUBLIC_APP_URL ?? "https://shrtly.myself-juyel-dev.workers.dev"}/${result.slug}` : null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

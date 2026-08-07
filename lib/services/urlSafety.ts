@@ -3,7 +3,7 @@
  * Not a full Safe Browsing integration (that's a funded Phase 2 upgrade).
  * Also blocks destinations pointing back at this app itself (redirect loop).
  */
-const APP_HOSTNAMES = ["shrtly.pages.dev", "localhost"];
+const APP_HOSTNAMES = ["shrtly.myself-juyel-dev.workers.dev", "localhost"];
 
 const OBVIOUS_ABUSE_PATTERNS = [/paypal-?secure/i, /verify-?account-?now/i, /free-?gift-?card/i];
 

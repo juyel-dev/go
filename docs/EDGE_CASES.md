@@ -11,7 +11,7 @@
 |---|---|
 | Slug collision on auto-generate | Retry with a new nanoid (up to 5 attempts) before failing with a clear error — collision probability is negligible at MVP scale but the retry loop costs nothing. |
 | User requests a reserved-word slug | Rejected at both client validation and server (`RESERVED_SLUG` error code) — see ARCHITECTURE.md §3. |
-| Destination URL points back to `shrtly.pages.dev` itself | Rejected at creation — prevents redirect loops. |
+| Destination URL points back to `shrtly.myself-juyel-dev.workers.dev` itself | Rejected at creation — prevents redirect loops. |
 | Destination URL is malformed / not a real URL | Zod validation rejects before hitting the service layer. |
 | Link edited while someone is mid-redirect (race) | KV is the source of truth for in-flight requests; the edit invalidates KV synchronously (ARCHITECTURE.md §2) so the *next* request gets fresh data — the in-flight one completes with whatever it already read. Acceptable: a redirect completing a few hundred ms "stale" is not a correctness problem. |
 | Password-protected link, wrong password submitted repeatedly | Rate-limited 5/10min per IP+link (API.md §3) — prevents brute force without needing CAPTCHA in MVP. |

@@ -16,7 +16,7 @@
 | Auth | Supabase Auth | Email/password + OAuth, integrates directly with RLS |
 | CI/CD | GitHub Actions → Cloudflare Pages | GitHub is single source of truth |
 
-No custom domain in MVP. Public URL: `https://shrtly.pages.dev`. Short links: `https://shrtly.pages.dev/{slug}`.
+No custom domain in MVP. Public URL: `https://shrtly.myself-juyel-dev.workers.dev`. Short links: `https://shrtly.myself-juyel-dev.workers.dev/{slug}`.
 
 ## 2. Redirect Flow (Cache-Aside Pattern)
 
@@ -159,7 +159,7 @@ GitHub Actions: lint + typecheck + build
 Cloudflare Pages build (via @cloudflare/next-on-pages)
    │
    ▼
-Deploy to shrtly.pages.dev
+Deploy to shrtly.myself-juyel-dev.workers.dev
 ```
 
 On deployment failure: read Cloudflare Pages build logs → identify root cause → fix → commit → push → redeploy (autonomous loop, per project instructions).
