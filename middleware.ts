@@ -106,14 +106,29 @@ function setDeviceCookie(request: NextRequest): NextResponse {
 }
 
 async function resolveFromSupabase(slug: string): Promise<LinkKVMeta | null> {
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/public_link_resolution?slug=eq.${encodeURIComponent(slug)}&select=*`;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // TEMPORARY diagnostic -- see docs/STATE.md "debugging redirect bug".
+  if (!supabaseUrl || !anonKey) {
+    throw new Error(
+      `DEBUG: missing env at runtime. supabaseUrl=${JSON.stringify(supabaseUrl)} anonKeySet=${Boolean(anonKey)}`
+    );
+  }
+
+  const url = `${supabaseUrl}/rest/v1/public_link_resolution?slug=eq.${encodeURIComponent(slug)}&select=*`;
   const res = await fetch(url, {
     headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
     },
   });
-  if (!res.ok) return null;
+
+  // TEMPORARY diagnostic
+  if (!res.ok) {
+    const bodyText = await res.text();
+    throw new Error(`DEBUG: Supabase fetch failed. status=${res.status} url=${url} body=${bodyText}`);
+  }
   const rows = (await res.json()) as Array<{
     id: string;
     slug: string;
