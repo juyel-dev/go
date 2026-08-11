@@ -8,13 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect multiple routes directly
+      - name: Repeated isolated tests
         run: |
-          for path in "/" "/link-not-found" "/link-expired" "/bMjLTUC" "/login"; do
-            code=$(curl -s -o /tmp/r.html -w "%{http_code}" "https://shrtly.myself-juyel-dev.workers.dev${path}")
-            h1=$(grep -o '<h1[^>]*>[^<]*</h1>' /tmp/r.html | head -1)
-            echo "::notice::PATH=${path} STATUS=${code} H1=${h1}"
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /tmp/r$i.html -w "%{http_code}" -D /tmp/h$i.txt "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC")
+            loc=$(grep -i "^location:" /tmp/h$i.txt | tr -d '\r')
+            h1=$(grep -o '<h1[^>]*>[^<]*</h1>' /tmp/r$i.html | head -1)
+            echo "::notice::ATTEMPT_$i STATUS=$code LOCATION=$loc H1=$h1"
+            sleep 1
           done
-          echo "::notice::current deployment version check"
-          curl -s -o /dev/null -D /tmp/headers.txt "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC"
-          echo "::notice::headers: $(cat /tmp/headers.txt | tr '\n' ' | ')"
