@@ -1,0 +1,12 @@
+name: Verify Once (temporary)
+on:
+  workflow_dispatch: {}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test redirect
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -D /tmp/h.txt "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC")
+          loc=$(grep -i "^location:" /tmp/h.txt | tr -d '\r')
+          echo "::notice::STATUS=$code $loc"
