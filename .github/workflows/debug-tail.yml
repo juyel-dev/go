@@ -8,14 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch and inspect full response
+      - name: Inspect multiple routes directly
         run: |
-          curl -s "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC" -o resp.html
-          echo "::notice::body length: $(wc -c < resp.html)"
-          echo "::notice::has_LinkNotFound: $(grep -c 'Link not found' resp.html || true)"
-          echo "::notice::has_CouldNotBeFound: $(grep -c 'could not be found' resp.html || true)"
-          echo "::notice::has_ShortLinksHero: $(grep -c 'Short links you can trust' resp.html || true)"
-          echo "::notice::has_DEBUG_ERROR: $(grep -c 'MIDDLEWARE_DEBUG_ERROR' resp.html || true)"
-          echo "::notice::has_unlock: $(grep -c 'password protected' resp.html || true)"
-          echo "::notice::snippet1: $(grep -o '<h1[^>]*>[^<]*</h1>' resp.html | head -3 | tr '\n' ' ')"
-          echo "::notice::status_check: $(curl -s -o /dev/null -w '%{http_code}' 'https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC')"
+          for path in "/" "/link-not-found" "/link-expired" "/bMjLTUC" "/login"; do
+            code=$(curl -s -o /tmp/r.html -w "%{http_code}" "https://shrtly.myself-juyel-dev.workers.dev${path}")
+            h1=$(grep -o '<h1[^>]*>[^<]*</h1>' /tmp/r.html | head -1)
+            echo "::notice::PATH=${path} STATUS=${code} H1=${h1}"
+          done
+          echo "::notice::current deployment version check"
+          curl -s -o /dev/null -D /tmp/headers.txt "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC"
+          echo "::notice::headers: $(cat /tmp/headers.txt | tr '\n' ' | ')"
