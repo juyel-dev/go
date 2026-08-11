@@ -8,29 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm install wrangler
-      - name: Tail worker logs while triggering test requests
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Fetch and inspect full response
         run: |
-          npx wrangler tail shrtly --format json > tail.ndjson 2> tail-stderr.log &
-          TAIL_PID=$!
-          sleep 6
-          RESP=$(curl -s -w "\n%{http_code}" "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC")
-          echo "::notice::curl response: $(echo "$RESP" | tail -c 400 | tr '\n' ' ')"
-          sleep 8
-          kill $TAIL_PID 2>/dev/null || true
-          sleep 2
-          sudo apt-get install -y jq >/dev/null 2>&1 || true
-          jq -c 'select(.event.request.url // "" | contains("bMjLTUC"))' tail.ndjson > matched.ndjson || true
-          MCOUNT=$(wc -l < matched.ndjson || echo 0)
-          echo "::notice::matched $MCOUNT events for bMjLTUC"
-          i=0
-          while IFS= read -r line && [ $i -lt 5 ]; do
-            i=$((i+1))
-            echo "::notice::FULL_EVENT_$i: $(echo "$line" | cut -c1-900)"
-          done < matched.ndjson
+          curl -s "https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC" -o resp.html
+          echo "::notice::body length: $(wc -c < resp.html)"
+          echo "::notice::has_LinkNotFound: $(grep -c 'Link not found' resp.html || true)"
+          echo "::notice::has_CouldNotBeFound: $(grep -c 'could not be found' resp.html || true)"
+          echo "::notice::has_ShortLinksHero: $(grep -c 'Short links you can trust' resp.html || true)"
+          echo "::notice::has_DEBUG_ERROR: $(grep -c 'MIDDLEWARE_DEBUG_ERROR' resp.html || true)"
+          echo "::notice::has_unlock: $(grep -c 'password protected' resp.html || true)"
+          echo "::notice::snippet1: $(grep -o '<h1[^>]*>[^<]*</h1>' resp.html | head -3 | tr '\n' ' ')"
+          echo "::notice::status_check: $(curl -s -o /dev/null -w '%{http_code}' 'https://shrtly.myself-juyel-dev.workers.dev/bMjLTUC')"
