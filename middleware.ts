@@ -11,8 +11,7 @@ import type { LinkKVMeta } from "@/lib/kv/cacheService";
  * convention (fails with "Node.js middleware is not currently supported" at
  * build/deploy time as of Aug 2026). The legacy `middleware.ts` (Edge
  * runtime) file is the only convention that currently works when deploying
- * to Cloudflare Workers via OpenNext. Revisit this once OpenNext ships
- * Node.js middleware support -- track via their GitHub issues.
+ * to Cloudflare Workers via OpenNext.
  */
 
 /**
@@ -20,22 +19,16 @@ import type { LinkKVMeta } from "@/lib/kv/cacheService";
  * Runs on every request. Reserved paths and multi-segment paths pass through
  * to the Next.js app untouched; a single-segment path is treated as a
  * candidate short-link slug and resolved via KV (cache-aside over Supabase).
+ *
+ * IMPORTANT: this middleware never issues the final cross-origin redirect
+ * itself -- it REWRITES to /api/redirect, which does that. Confirmed
+ * @opennextjs/cloudflare bug: a cross-origin `NextResponse.redirect()`
+ * issued directly from middleware (the separately-bundled Edge runtime
+ * chunk) gets silently turned into a 404 by Cloudflare's Workers routing --
+ * the Location header stays correct, but status/body become a generic 404.
+ * See app/api/redirect/route.ts for the full explanation and the fix.
  */
 export async function middleware(request: NextRequest) {
-  try {
-    return await handleMiddleware(request);
-  } catch (e) {
-    // TEMPORARY diagnostic wrapper -- see docs/STATE.md "debugging redirect bug".
-    // Remove once the root cause of the production redirect failure is confirmed.
-    const message = e instanceof Error ? `${e.name}: ${e.message}\n${e.stack}` : String(e);
-    return new Response(`MIDDLEWARE_DEBUG_ERROR:\n${message}`, {
-      status: 500,
-      headers: { "content-type": "text/plain" },
-    });
-  }
-}
-
-async function handleMiddleware(request: NextRequest) {
   const response = setDeviceCookie(request);
 
   const { pathname } = request.nextUrl;
@@ -79,16 +72,15 @@ async function handleMiddleware(request: NextRequest) {
   }
 
   if (meta.hasPassword) {
-    const url = new URL(`/unlock/${slug}`, request.url);
-    return NextResponse.rewrite(url);
+    return NextResponse.rewrite(new URL(`/unlock/${slug}`, request.url));
   }
 
-  // Fire-and-forget click log -- never blocks the redirect. See
-  // lib/plugins/core/click-logging.ts and ARCHITECTURE.md §2.
-  const ctx = getCloudflareContext();
-  ctx.ctx.waitUntil(logClickAsync(request, meta.id));
-
-  return NextResponse.redirect(meta.destinationUrl, { status: 302, headers: response.headers });
+  // Hand off to the Route Handler for the actual redirect + click log --
+  // see the file-level comment above for why this can't happen here.
+  const redirectUrl = new URL("/api/redirect", request.url);
+  redirectUrl.searchParams.set("to", meta.destinationUrl);
+  redirectUrl.searchParams.set("linkId", meta.id);
+  return NextResponse.rewrite(redirectUrl);
 }
 
 function setDeviceCookie(request: NextRequest): NextResponse {
@@ -108,13 +100,7 @@ function setDeviceCookie(request: NextRequest): NextResponse {
 async function resolveFromSupabase(slug: string): Promise<LinkKVMeta | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  // TEMPORARY diagnostic -- see docs/STATE.md "debugging redirect bug".
-  if (!supabaseUrl || !anonKey) {
-    throw new Error(
-      `DEBUG: missing env at runtime. supabaseUrl=${JSON.stringify(supabaseUrl)} anonKeySet=${Boolean(anonKey)}`
-    );
-  }
+  if (!supabaseUrl || !anonKey) return null;
 
   const url = `${supabaseUrl}/rest/v1/public_link_resolution?slug=eq.${encodeURIComponent(slug)}&select=*`;
   const res = await fetch(url, {
@@ -123,12 +109,8 @@ async function resolveFromSupabase(slug: string): Promise<LinkKVMeta | null> {
       Authorization: `Bearer ${anonKey}`,
     },
   });
+  if (!res.ok) return null;
 
-  // TEMPORARY diagnostic
-  if (!res.ok) {
-    const bodyText = await res.text();
-    throw new Error(`DEBUG: Supabase fetch failed. status=${res.status} url=${url} body=${bodyText}`);
-  }
   const rows = (await res.json()) as Array<{
     id: string;
     slug: string;
@@ -152,34 +134,6 @@ async function resolveFromSupabase(slug: string): Promise<LinkKVMeta | null> {
     clickCount: row.click_count,
     hasPassword: row.has_password,
   };
-}
-
-async function logClickAsync(request: NextRequest, linkId: string): Promise<void> {
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/clicks`;
-  // Cloudflare augments the incoming Request with a `cf` object at runtime;
-  // NextRequest's type doesn't declare it, so we extend narrowly here rather
-  // than casting to `any`.
-  const cf = (request as NextRequest & { cf?: IncomingRequestCfProperties }).cf;
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: JSON.stringify({
-      link_id: linkId,
-      country: cf?.country ?? null,
-      city: cf?.city ?? null,
-      device_type: classifyUserAgent(request.headers.get("user-agent")),
-      referrer: request.headers.get("referer") ?? null,
-      is_bot: /bot|crawler|spider|slurp/i.test(request.headers.get("user-agent") ?? ""),
-    }),
-  }).catch(() => {
-    // Click logging must never break the redirect -- swallow errors here.
-    // A dropped click event is an acceptable loss; a broken redirect is not.
-  });
 }
 
 export const config = {
