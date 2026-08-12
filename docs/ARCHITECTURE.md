@@ -35,19 +35,24 @@ Is path a reserved app route? (see §3)
          │
          ├── HIT (JSON: { url, is_active, expires_at, has_password, password_hash })
          │      │
-         │      ├── !is_active OR expired            → render "Link not found/expired" page
-         │      ├── has_password                      → render password-gate page
-         │      │        └── on correct submit → 302 redirect + async click log
-         │      └── else                               → 302 redirect immediately
-         │                                                 + ctx.waitUntil(logClick()) [non-blocking]
+         │      ├── !is_active OR expired            → rewrite to /link-expired
+         │      ├── has_password                      → rewrite to /unlock/[slug]
+         │      └── else                               → rewrite to /api/redirect?to=...&linkId=...
+         │                                                 (see note below on WHY this hop exists)
          │
-         └── MISS → query Supabase (`select * from links where slug = $1 and workspace_id is not null`)
+         └── MISS → query Supabase (`public_link_resolution` view, anon key, over REST)
                 │
                 ├── FOUND → KV.put(slug, metadata, { expirationTtl: 86400 })
                 │            → repeat HIT logic above
                 │
-                └── NOT FOUND → 404 "Link not found" page
+                └── NOT FOUND → rewrite to /link-not-found
+
+/api/redirect (Route Handler, main server bundle -- NOT middleware):
+   → Response.redirect(to, 302) + ctx.waitUntil(logClick()) [non-blocking]
 ```
+
+### ⚠️ Why the final redirect happens in a Route Handler, not middleware directly
+Confirmed `@opennextjs/cloudflare` bug (found and fixed Aug 2026): a **cross-origin** `NextResponse.redirect()` issued directly from `middleware.ts` (the separately-bundled Edge runtime chunk) gets silently turned into a **404** by Cloudflare's Workers routing layer — the `Location` header stays correct (verified via `wrangler tail`), but the status code and body become a generic Next.js 404 page. A plain `Response.redirect()` issued from a normal Cloudflare Worker (no Next.js middleware involved) works fine, and so does one issued from a Next.js **Route Handler** (main server bundle, not the Edge middleware bundle). The fix: `middleware.ts` only ever resolves the slug and **rewrites** to `/api/redirect?to=<destination>&linkId=<id>`, which is a plain Route Handler that does `Response.redirect(to, 302)` and the non-blocking click log. This adds one internal rewrite hop but keeps redirect latency negligible (still edge-resolved, no extra DB round trip). If a future OpenNext release fixes cross-origin redirects from middleware, this hop could be removed -- but there's no urgency, the current setup works correctly and isn't a meaningful latency cost.
 
 ### Why metadata in KV, not just the destination URL
 Because links can be password-protected or expiring, a naive cache of `slug → destination` would leak protected content or serve expired links after cache population. Caching the **full metadata object** keeps the edge authoritative without a DB round-trip on every hit.
@@ -55,7 +60,7 @@ Because links can be password-protected or expiring, a naive cache of `slug → 
 ### Click logging (avoiding KV write-limit exhaustion)
 Cloudflare KV free tier allows only 1,000 writes/day account-wide — nowhere near enough for one write per click. Click events are therefore:
 1. **Never** written to KV.
-2. Inserted directly into Supabase (`clicks` table) using `ctx.waitUntil()` so the redirect response is not delayed.
+2. Inserted directly into Supabase (`clicks` table) from `/api/redirect`'s Route Handler using `ctx.waitUntil()` so the redirect response is not delayed.
 3. Cache metadata writes to KV only happen on: link creation, link edit, cache miss (repopulation), or explicit invalidation (edit/delete/expire) — comfortably within the 1,000/day budget for expected MVP traffic.
 
 ### Cache invalidation
@@ -69,7 +74,8 @@ Because short links live at the domain root (no `/s/` or `/r/` prefix, no custom
 2. **At middleware level** (reserved paths always route to the Next.js app, never to slug resolution).
 
 Reserved list (extensible, stored in `lib/reserved-slugs.ts` and mirrored in DB constraint):
-`login, signup, logout, dashboard, admin, api, settings, workspace, workspaces, docs, about, pricing, terms, privacy, help, support, blog, _next, favicon.ico, robots.txt, sitemap.xml, s, r, qr`
+`login, signup, logout, dashboard, admin, api, settings, workspace, workspaces, docs, about, pricing, terms, privacy, help, support, blog, claim, link-not-found, link-expired, unlock, s, r, qr`
+(`link-not-found`, `link-expired`, `unlock` were missing initially -- a real bug found during launch testing where the app's own utility routes could be mistaken for short-link slugs when visited directly. Now fixed and reserved like everything else.)
 
 ## 4. Application Structure (Next.js App Router — preview)
 
@@ -96,7 +102,7 @@ components/
 ## 5. Security Model
 
 - **RLS everywhere:** every table scoped by `workspace_id`; a user can only read/write rows in workspaces they belong to. Super-admin role bypasses via a dedicated `service_role` server-only client, never exposed to the browser.
-- **Password-protected links:** password hashed (bcrypt/argon2) before storage — never compared in plaintext, never cached in plaintext in KV beyond the hash.
+- **Password-protected links:** password hashed via salted PBKDF2 (210k iterations, SHA-256, Web Crypto) before storage — never compared in plaintext, never cached in plaintext in KV beyond the hash. (Deviates from an earlier "bcrypt/argon2" placeholder in this doc: those need native bindings unavailable on the Workers edge runtime, so PBKDF2 via Web Crypto is the strongest option actually available at the edge.)
 - **Rate limiting:** public quick-shorten endpoint rate-limited per IP (Cloudflare) to prevent spam/abuse; authenticated endpoints rate-limited per user.
 - **Malicious URL protection:** on link creation, destination URL checked against a lightweight denylist/heuristic (expand to a real Safe Browsing-style API in Phase 2) before the link is allowed to go live.
 - **Secrets:** all credentials (Supabase service key, Cloudflare tokens) live only in GitHub Actions secrets / Cloudflare Pages environment variables — never committed to the repo.

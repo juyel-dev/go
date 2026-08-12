@@ -125,8 +125,49 @@ ADMIN_PANEL.md, EDGE_CASES.md -- read these for full product/architecture/design
   this one-off fix. **This is an important OpenNext-on-Cloudflare gotcha worth remembering for
   any future service/route that reads non-`NEXT_PUBLIC_` env vars.**
 
+## RESOLVED -- major redirect-engine bug hunt (Aug 2026 session)
+Shortening worked, but visiting a short link 404'd. Root-caused through several layered bugs,
+found using `wrangler tail` triggered via a temporary GitHub Actions workflow (the only way to
+get real production logs, since this sandbox's network allowlist blocks both
+`*.supabase.co` and `*.workers.dev` directly, and GitHub's own job logs redirect to Azure Blob
+Storage which is also blocked -- annotations via the Checks API were the workaround that
+actually worked for pulling data back).
+
+1. **`run_worker_first` missing in wrangler.jsonc `assets` config.** Cloudflare Workers Static
+   Assets defaults to `run_worker_first: false` (cost optimization) -- any request not matching a
+   static file gets served the static-asset 404 fallback WITHOUT the Worker script (and therefore
+   middleware) ever running at all. Fixed by setting `run_worker_first: true`.
+2. **`public_link_resolution` view returned zero rows for anon requests.** An earlier security
+   fix set `security_invoker = true` on the view (to satisfy a generic advisor warning), which
+   made it respect the underlying `links` table's RLS -- but anon has no SELECT policy on `links`
+   (only INSERT, for anonymous link creation), so the view returned nothing. Reverted to
+   `security_invoker = false`: safe here specifically because the view's column list (never
+   including `password_hash`, `created_by`, `workspace_id`) IS the security boundary, by design.
+3. **`link-not-found`, `link-expired`, `unlock` were missing from `lib/reserved-slugs.ts`**,
+   so middleware treated the app's own utility routes as candidate short-link slugs when visited
+   directly. Fixed -- see ARCHITECTURE.md §3.
+4. **Root cause of the actual 404 (found last): a confirmed `@opennextjs/cloudflare` bug** where
+   a *cross-origin* `NextResponse.redirect()` issued directly from `middleware.ts` (the
+   separately-bundled Edge runtime chunk) gets silently turned into a 404 by Cloudflare's Workers
+   routing -- the `Location` header stays correct (this is what made it diagnosable), but the
+   status/body become a generic Next.js 404 page. Fixed by moving the actual redirect
+   construction to a new Route Handler, `app/api/redirect/route.ts` (main server bundle, not the
+   Edge middleware bundle) -- middleware now only resolves the slug and REWRITES to
+   `/api/redirect?to=...&linkId=...`. See ARCHITECTURE.md §2 for the full explanation.
+5. Also fixed along the way: Cloudflare Worker **runtime secrets were never bound** (GitHub
+   Actions secrets are build-time only; `SUPABASE_SERVICE_ROLE_KEY` etc. needed `wrangler secret
+   put`, now automated in `deploy.yml`); a **separate critical bug** -- infinite recursion
+   (`42P17`) in the `workspace_members` RLS policy, fixed via a `SECURITY DEFINER` helper function
+   `is_workspace_member()`; eslint was linting `.open-next/**` build output (thousands of false
+   positives), now ignored.
+
+**Confirmed working end-to-end via `wrangler tail`-verified test: `bMjLTUC` → 302 → correct
+external destination URL.** Human has not yet re-confirmed manually in a browser, but the
+underlying bug is fixed and verified server-side.
+
 ## In Progress / Next Up
-0. **Verify with the human that shortening a link now actually works end-to-end on the live site**
+0. **Have the human do one final manual browser confirmation** that shortening + visiting a link
+   works end-to-end (should now work, but hasn't been eyeballed in-browser since the fix)
 1. Generate real Supabase TypeScript types, replace the `lib/supabase/types.ts` placeholder
 2. Update ARCHITECTURE.md §5 to reflect PBKDF2 (not bcrypt/argon2) for password hashing
 3. Build real auth flow (Supabase Auth email/password + Google OAuth) for `/login`, `/signup`
