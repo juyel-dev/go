@@ -14,6 +14,8 @@ import { setLinkMeta, invalidate } from "@/lib/kv/cacheService";
 import { emit } from "@/lib/services/eventBus";
 import { ok, err, type Result } from "@/lib/services/types";
 import { isLikelyMaliciousUrl } from "@/lib/services/urlSafety";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/services/rateLimiter";
+import { getClientIp } from "@/lib/services/requestContext";
 
 // Unambiguous alphabet (no 0/O/1/l confusion) -- 7 chars ~= 3.5 trillion
 // combinations, plenty of headroom before collision risk matters at MVP scale.
@@ -37,6 +39,9 @@ export type Link = {
   maxClicks: number | null;
   clickCount: number;
   createdAt: string;
+  /** Only populated for anonymous links, right after creation -- used to set
+   *  the claim cookie (SCREENS.md §2.1). Never re-fetched/exposed later. */
+  claimToken: string | null;
 };
 
 // Shape of a raw `links` row as returned by Supabase, until real generated
@@ -54,6 +59,7 @@ type LinkRow = {
   max_clicks: number | null;
   click_count: number;
   created_at: string;
+  claim_token?: string | null;
 };
 
 function toLink(row: LinkRow): Link {
@@ -62,6 +68,7 @@ function toLink(row: LinkRow): Link {
     workspaceId: row.workspace_id,
     createdBy: row.created_by,
     slug: row.slug,
+    claimToken: row.claim_token ?? null,
     destinationUrl: row.destination_url,
     title: row.title,
     isActive: row.is_active,
@@ -80,6 +87,18 @@ export async function create(input: CreateLinkInput): Promise<Result<Link>> {
   }
   const data = parsed.data;
 
+  const isAnonymousAttempt = !data.workspaceId;
+  const rateLimitKey = isAnonymousAttempt
+    ? `link-create:ip:${await getClientIp()}`
+    : `link-create:user:${data.createdBy ?? "unknown"}`;
+  const rateConfig = isAnonymousAttempt
+    ? RATE_LIMITS.anonymousLinkCreate
+    : RATE_LIMITS.authenticatedLinkCreate;
+  const rateResult = await checkRateLimit(rateLimitKey, rateConfig.limit, rateConfig.windowSeconds);
+  if (!rateResult.allowed) {
+    return err("RATE_LIMITED", "You're creating links a little too fast. Try again in a few minutes.");
+  }
+
   if (data.slug && isReservedSlug(data.slug)) {
     return err("RESERVED_SLUG", "That word is reserved for the app. Pick a different slug.");
   }
@@ -90,7 +109,7 @@ export async function create(input: CreateLinkInput): Promise<Result<Link>> {
 
   // Anonymous links: force 7-day expiry regardless of what was passed in --
   // see docs/DATABASE.md (links.expires_at) and EDGE_CASES.md §2.
-  const isAnonymous = !data.workspaceId;
+  const isAnonymous = isAnonymousAttempt;
   const expiresAt = isAnonymous
     ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     : (data.expiresAt ?? null);
@@ -307,6 +326,16 @@ export async function verifyPassword(
   linkId: string,
   password: string
 ): Promise<Result<{ destinationUrl: string }>> {
+  const rateKey = `password-attempt:${await getClientIp()}:${linkId}`;
+  const rateResult = await checkRateLimit(
+    rateKey,
+    RATE_LIMITS.passwordAttempt.limit,
+    RATE_LIMITS.passwordAttempt.windowSeconds
+  );
+  if (!rateResult.allowed) {
+    return err("RATE_LIMITED", "Too many attempts. Try again in a few minutes.");
+  }
+
   const supabase = createServiceRoleClient();
   const { data: row, error } = await supabase
     .from("links")

@@ -14,6 +14,7 @@ export const RESERVED_SLUGS = new Set([
   "admin",
   "api",
   "settings",
+  "links",
   "workspace",
   "workspaces",
   "docs",

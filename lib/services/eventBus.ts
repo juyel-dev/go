@@ -13,6 +13,7 @@
  */
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getActivePlugins } from "@/lib/plugins/registry";
+import type { Json } from "@/lib/supabase/types";
 
 export type EventType =
   | "link.created"
@@ -34,7 +35,7 @@ export async function emit(event: DomainEvent): Promise<void> {
   await supabase.from("event_log").insert({
     workspace_id: event.workspaceId ?? null,
     event_type: event.eventType,
-    payload: event.payload,
+    payload: event.payload as unknown as Json,
   });
 
   // Fan out to any plugin listening for this event type.
