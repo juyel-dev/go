@@ -165,18 +165,45 @@ actually worked for pulling data back).
 external destination URL.** Human has not yet re-confirmed manually in a browser, but the
 underlying bug is fixed and verified server-side.
 
+## RESOLVED -- feature build-out (Aug 2026 session, after redirect bug confirmed fixed)
+Human confirmed the redirect fix works end-to-end. Proceeded through the remaining MVP-critical
+backlog in one session:
+- [x] Real Supabase TypeScript types generated and wired in (`lib/supabase/types.ts`)
+- [x] Rate limiting (API.md §3): KV counters in `lib/services/rateLimiter.ts`, wired into
+      `linkService.create()` and `verifyPassword()` -- previously an open security gap
+- [x] Auth flow: `/login`, `/signup` (email/password + Google OAuth button), `/auth/callback`
+      (code exchange). **Google OAuth needs the provider enabled in the Supabase dashboard
+      (Authentication > Providers > Google, with a Google Cloud OAuth client ID/secret) --
+      Claude has no MCP tool for this, human needs to do it manually if they want that button to
+      work. Email/password auth works regardless.**
+- [x] Claim flow (SCREENS.md §2.1): quick-shorten now sets an httpOnly claim-token cookie;
+      `/claim` reads it post-login, offers one-click add-to-account, skips through if empty
+- [x] `workspaceService` (getForUser/getDefaultForUser)
+- [x] Dashboard: auth-guarded `(dashboard)` layout + sidebar shell, real `/links` page,
+      Create Link dialog (dialog.tsx hand-written using radix-ui primitives -- the Shadcn MCP
+      tool wasn't available this session)
+- [x] Device-adaptive Links screen fully implemented (mobile/tablet/desktop variants)
+- [x] Found + fixed: `links` and reserved-word DB constraint were both missing/incomplete
+      (ARCHITECTURE.md always claimed a DB constraint existed -- it didn't, now does)
+- Full type-check + lint + `next build` + `opennextjs-cloudflare build` + `wrangler deploy
+  --dry-run` all verified clean before push; CI + Deploy + Keepalive all green after push
+
 ## In Progress / Next Up
-0. **Have the human do one final manual browser confirmation** that shortening + visiting a link
-   works end-to-end (should now work, but hasn't been eyeballed in-browser since the fix)
-1. Generate real Supabase TypeScript types, replace the `lib/supabase/types.ts` placeholder
-2. Update ARCHITECTURE.md §5 to reflect PBKDF2 (not bcrypt/argon2) for password hashing
-3. Build real auth flow (Supabase Auth email/password + Google OAuth) for `/login`, `/signup`
-4. Build the device-adaptive Links screen (`screens/links/*.mobile.tsx` /
-   `.tablet.tsx` / `.desktop.tsx` per FOLDER_STRUCTURE.md §3) wired to `linkService.listForWorkspace`
-5. Build the claim-anonymous-links post-signup flow (SCREENS.md §2.1)
-6. Wire up rate limiting (API.md §3 -- KV counters) on link creation and password attempts --
-   currently NOT implemented, anonymous create endpoint is unprotected right now
-7. Dashboard home, link detail/analytics screen, admin panel (all still TODO stubs)
+1. **Human: enable Google OAuth provider in Supabase dashboard** if the Google sign-in button
+   should actually work (Authentication > Providers > Google)
+2. Dashboard home / overview screen (summary cards, recent links, click trend) -- still a
+   placeholder-free gap, SCREENS.md §3 describes it but it was never built
+3. Link detail + analytics screen (SCREENS.md §3) -- `/links/[id]` route doesn't exist yet even
+   though the Links table already links to it
+4. Admin panel (still a TODO stub) -- ADMIN_PANEL.md describes the full spec
+5. Mobile dashboard nav is a flat inline list right now, not the drawer/hamburger described in
+   DESIGN_SYSTEM.md §4 -- functional but not polished
+6. Folders/tags UI (schema exists, no UI yet)
+7. Bulk actions (multi-select archive/delete/tag) on the links list -- not built
+8. Edit/archive/delete actions on individual links from the dashboard -- not built (only create)
+9. `event_log` plugin listeners beyond `expiry-cleanup` -- fine for MVP, revisit Phase 2
+10. No automated tests exist yet anywhere in the codebase (acceptable for MVP per
+    FOLDER_STRUCTURE.md §5, deferred deliberately, not forgotten)
 8. Manually verify `https://shrtly.myself-juyel-dev.workers.dev` in a real browser end-to-end
    (create an anonymous link, confirm redirect works) -- Claude could not verify directly, the
    sandbox's network allowlist blocks `*.workers.dev`
